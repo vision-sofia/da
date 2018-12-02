@@ -2,18 +2,17 @@ package com.viziazasofia.da.data_extract;
 
 import java.util.ArrayList;
 
-public class Train {
-
+public class Bus {
     private int number;
     private ArrayList<Station> stations;
 
-    Train(){}
+    Bus(){}
 
-    Train(int number){
+    Bus(int number){
         this.number = number;
     }
 
-    Train(int number, ArrayList<Station> stations){
+    Bus(int number, ArrayList<Station> stations){
         this.number = number;
         this.stations = stations;
     }
@@ -36,7 +35,7 @@ public class Train {
 
     @Override
     public String toString() {
-        return "Train{" +
+        return "Bus{" +
                 "number=" + number +
                 ", stations=" + stations +
                 '}';

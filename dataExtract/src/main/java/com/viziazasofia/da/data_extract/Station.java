@@ -8,6 +8,8 @@ public class Station {
     private int exchange;
     private int loaded;
 
+    Station(){}
+
     Station(String code, String name, int gotUp, int descended, int exchange, int loaded){
         this.code = code;
         this.name = name;

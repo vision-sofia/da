@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 @SpringBootApplication
@@ -24,55 +25,140 @@ public class DataExtractApplication {
         System.out.println("Workbook has " + workbook.getNumberOfSheets() + " Sheets : ");
 
 
-        System.out.println("Retrieving Sheets using for-each loop");
+
+
+        ArrayList<Train> trains = new ArrayList<>();
+        ArrayList<Trolley> trolleybuses = new ArrayList<>();
+        ArrayList<Bus> buses = new ArrayList<>();
+
+
         for(Sheet sheet: workbook) {
-            System.out.println("=> " + sheet.getSheetName());
-        }
+
+            // Create a DataFormatter to format and get each cell's value as String
+            DataFormatter dataFormatter = new DataFormatter();
+
+            int columns = 7;
+            int transportNumber = 0;
+
+            boolean isTrain = false;
+            boolean isBus = false;
+            boolean isTrolley = false;
 
 
-        // Getting the Sheet at index zero
-        Sheet sheet = workbook.getSheetAt(0);
+            // Iterate first column tables
 
-        // Create a DataFormatter to format and get each cell's value as String
-        DataFormatter dataFormatter = new DataFormatter();
-
-        int train_columns = 7;
-        int counter = 0;
+            System.out.println("\n\nIterating First column tables\n");
+            Iterator<Row> rowIterator = sheet.rowIterator();
 
 
-        // Iterate first column tables
 
-        System.out.println("\n\nIterating First column tables\n");
-        Iterator<Row> rowIterator = sheet.rowIterator();
-        while (rowIterator.hasNext()) {
-            Row row = rowIterator.next();
+            while (rowIterator.hasNext()) {
+                Row row = rowIterator.next();
 
-            if(startsTable(row)) {
-                while (rowIterator.hasNext() && !endOfTable(row)) {
-                    row = rowIterator.next();
-
-                    // Now let's iterate over the columns of the current row
-                    Iterator<Cell> cellIterator = row.cellIterator();
-
-                    while (cellIterator.hasNext() && counter < 7) {
-
-                        Cell cell = cellIterator.next();
-                        String cellValue = dataFormatter.formatCellValue(cell);
-                        System.out.print(cellValue + "\t");
-                        counter++;
-                    }
-                    counter = 0;
-                    System.out.println();
+                if(isThereTrainLine(row)){
+                    isTrain = true;
+                    transportNumber = getTransportNumber(row);
+                }else if(isThereTrolleyLine(row)){
+                    isTrolley = true;
+                    transportNumber = getTransportNumber(row);
+                }else if(isThereBusLine(row)){
+                    isBus = true;
+                    transportNumber = getTransportNumber(row);
                 }
+
+
+                if(startsTable(row)) {
+
+                    ArrayList<Station> stations = new ArrayList<>();
+                    boolean endOfTable = false;
+
+                    while (rowIterator.hasNext() && !endOfTable) {
+
+                        row = rowIterator.next();
+
+                        // Now let's iterate over the columns of the current row
+                        Iterator<Cell> cellIterator = row.cellIterator();
+                        Station station = new Station();
+                        int counter = 0;
+
+                        while (cellIterator.hasNext() && counter < columns) {
+
+                            Cell cell = cellIterator.next();
+                            String cellValue = dataFormatter.formatCellValue(cell);
+
+                            if(!cellValue.isEmpty()) {
+                                switch (counter) {
+                                    case 1:
+                                        station.setCode(cellValue);
+                                        break;
+                                    case 2:
+                                        station.setName(cellValue);
+                                        break;
+                                    case 3:
+                                        station.setGotUp(Integer.parseInt(cellValue));
+                                        break;
+                                    case 4:
+                                        station.setDescended(Integer.parseInt(cellValue));
+                                        break;
+                                    case 5:
+                                        station.setExchange(Integer.parseInt(cellValue));
+                                        break;
+                                    case 6:
+                                        station.setLoaded(Integer.parseInt(cellValue));
+                                        if(station.getLoaded() == 0) endOfTable = true;
+                                        break;
+                                }
+                            }
+                            System.out.print(cellValue + "\t");
+                            counter++;
+                        }
+
+                        stations.add(station);
+
+                        counter = 0;
+                        System.out.println();
+                    }
+                    if(isTrain) {
+                        trains.add(new Train(transportNumber, stations));
+                        isTrain = false;
+                    }else if(isTrolley){
+                        trolleybuses.add(new Trolley(transportNumber, stations));
+                        isTrolley = false;
+                    }else if(isBus){
+                        buses.add(new Bus(transportNumber, stations));
+                        isBus = false;
+                    }
+                }
+
+
+
+                System.out.println();
             }
 
 
 
-            System.out.println();
         }
+
+//
+//        // Getting the Sheet at index zero
+//        Sheet sheet = workbook.getSheetAt(0);
 
         // Closing the workbook
         workbook.close();
+
+
+
+        for(Train train : trains){
+            System.out.println(train.toString());
+        }
+
+        for(Trolley trolley : trolleybuses){
+            System.out.println(trolley.toString());
+        }
+
+        for(Bus bus : buses){
+            System.out.println(bus.toString());
+        }
     }
 
     private static boolean startsTable(Row row){
@@ -91,7 +177,8 @@ public class DataExtractApplication {
         return false;
     }
 
-    private static boolean endOfTable(Row row){
+
+    private static boolean isThereTrainLine(Row row){
         DataFormatter dataFormatter = new DataFormatter();
 
         Iterator<Cell> cellIterator = row.cellIterator();
@@ -105,38 +192,97 @@ public class DataExtractApplication {
             counter++;
         }
 
-        if(cellValue.equals("ОБЩО")) return true;
+        if(cellValue.contains("ТРАМВАЙНА ЛИНИЯ")) return true;
 
         return false;
     }
 
-    private static void printCellValue(Cell cell) {
-        switch (cell.getCellTypeEnum()) {
-            case BOOLEAN:
-                System.out.print(cell.getBooleanCellValue());
-                break;
-            case STRING:
-                System.out.print(cell.getRichStringCellValue().getString());
-                break;
-            case NUMERIC:
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    System.out.print(cell.getDateCellValue());
-                } else {
-                    System.out.print(cell.getNumericCellValue());
-                }
-                break;
-            case FORMULA:
-                System.out.print(cell.getCellFormula());
-                break;
-            case BLANK:
-                System.out.print("");
-                break;
-            default:
-                System.out.print("");
+    private static boolean isThereBusLine(Row row){
+        DataFormatter dataFormatter = new DataFormatter();
+
+        Iterator<Cell> cellIterator = row.cellIterator();
+
+        String cellValue = "";
+        int counter = 0;
+        while (cellIterator.hasNext() && counter < 3) {
+
+            Cell cell = cellIterator.next();
+            cellValue = dataFormatter.formatCellValue(cell);
+            counter++;
         }
 
-        System.out.print("\t");
+        if(cellValue.contains("АВТОБУСНА ЛИНИЯ") || cellValue.contains("А ЛИНИЯ")) return true;
 
+        return false;
+    }
+
+
+    private static boolean isThereTrolleyLine(Row row){
+        DataFormatter dataFormatter = new DataFormatter();
+
+        Iterator<Cell> cellIterator = row.cellIterator();
+
+        String cellValue = "";
+        int counter = 0;
+        while (cellIterator.hasNext() && counter < 3) {
+
+            Cell cell = cellIterator.next();
+            cellValue = dataFormatter.formatCellValue(cell);
+            counter++;
+        }
+
+        if(cellValue.contains("ТРОЛЕЙБУСНА  ЛИНИЯ")) return true;
+
+        return false;
+    }
+
+
+    private static int getTransportNumber(Row row){
+        DataFormatter dataFormatter = new DataFormatter();
+
+        Iterator<Cell> cellIterator = row.cellIterator();
+
+        String cellValue = "";
+        int counter = 0;
+        while (cellIterator.hasNext() && counter < 3) {
+
+            Cell cell = cellIterator.next();
+            cellValue = dataFormatter.formatCellValue(cell);
+            counter++;
+        }
+
+
+        int tmp = 1;
+        if(cellValue.contains("-Тм")) tmp = 4;
+        if(cellValue.contains(" -Б")) tmp = 4;
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        for(int index = cellValue.length() - tmp; cellValue.charAt(index) >= '0' && cellValue.charAt(index) <= '9'; index--){
+            stringBuilder.append(cellValue.charAt(index));
+        }
+
+        System.out.println("!!!!!!" + stringBuilder.reverse().toString());
+        return Integer.parseInt((stringBuilder.reverse()).toString());
+    }
+
+    private static boolean endOfTable(Row row){
+        DataFormatter dataFormatter = new DataFormatter();
+
+        Iterator<Cell> cellIterator = row.cellIterator();
+
+        String cellValue = "";
+        int counter = 0;
+        while (cellIterator.hasNext() && counter < 2) {
+
+            Cell cell = cellIterator.next();
+            cellValue = dataFormatter.formatCellValue(cell);
+            counter++;
+        }
+
+        if(cellValue.contains("ОБЩО")) return true;
+
+        return false;
     }
 
 
