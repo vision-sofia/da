@@ -9,7 +9,7 @@ var color_high = '#ff0000';
 var population_low = 1500;
 var population_medium = 7500;
 
-
+var polygons = [];
 function parseGeoJSON() {
 	$.each(data, function(i, item) {
 		if(i === "features") {
@@ -38,23 +38,26 @@ function drawGeofences(mymap) {
 			
 		});
 		
-			var color;
-			if (counts[i] <= population_low)
-				color = color_low;
-			else if (counts[i] <= population_medium)
-				color = color_medium;
-			else 
-				color = color_high;
+		var color;
+		if (counts[i] <= population_low)
+			color = color_low;
+		else if (counts[i] <= population_medium)
+			color = color_medium;
+		else 
+			color = color_high;
 		
 		var polygon = L.polygon(parsed_coords, {
 			fillColor: color,
 			opacity: 0.1,
-			color: color,
-			
-			}).addTo(mymap);
-			
-			polygon.bindTooltip("Name: " + region_names[i] + "\nPopulation: " + counts[i],
-		   {permanent: false, direction:"center"}
-		  )
+			color: color			
+		});
+		polygons.push(polygon);
+		polygon.bindTooltip("Name: " + region_names[i] + "\nPopulation: " + counts[i], {permanent: false, direction:"center"});
 	} 
+	
+	toggleRegions(mymap);
+}
+
+function toggleRegions(mymap) {
+	polygons.forEach(polygon => $("#regions").is(":checked") ? polygon.addTo(mymap) : mymap.removeLayer(polygon));
 }
