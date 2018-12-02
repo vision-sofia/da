@@ -14,6 +14,8 @@ import java.util.Iterator;
 public class DataExtractApplication {
 
     public static final String SAMPLE_XLS_FILE_PATH = "./sample-xls-file.xls";
+    public static final int FIRST_COLUMN = 1;
+    public static final int SECOND_COLUMN = 2;
 
     public static void main(String[] args) throws IOException, InvalidFormatException {
         SpringApplication.run(DataExtractApplication.class, args);
@@ -38,7 +40,7 @@ public class DataExtractApplication {
             DataFormatter dataFormatter = new DataFormatter();
 
             int columns = 7;
-            int transportNumber = 0;
+            String transportNumber = "";
 
             boolean isTrain = false;
             boolean isBus = false;
@@ -47,27 +49,24 @@ public class DataExtractApplication {
 
             // Iterate first column tables
 
-            System.out.println("\n\nIterating First column tables\n");
             Iterator<Row> rowIterator = sheet.rowIterator();
-
-
 
             while (rowIterator.hasNext()) {
                 Row row = rowIterator.next();
 
-                if(isThereTrainLine(row)){
+                if(isThereTrainLine(row, FIRST_COLUMN)){
                     isTrain = true;
-                    transportNumber = getTransportNumber(row);
-                }else if(isThereTrolleyLine(row)){
+                    transportNumber = getTransportNumber(row, FIRST_COLUMN);
+                }else if(isThereTrolleyLine(row,FIRST_COLUMN)){
                     isTrolley = true;
-                    transportNumber = getTransportNumber(row);
-                }else if(isThereBusLine(row)){
+                    transportNumber = getTransportNumber(row,FIRST_COLUMN);
+                }else if(isThereBusLine(row,FIRST_COLUMN)){
                     isBus = true;
-                    transportNumber = getTransportNumber(row);
+                    transportNumber = getTransportNumber(row,FIRST_COLUMN);
                 }
 
 
-                if(startsTable(row)) {
+                if(startsTable(row,FIRST_COLUMN)) {
 
                     ArrayList<Station> stations = new ArrayList<>();
                     boolean endOfTable = false;
@@ -131,100 +130,257 @@ public class DataExtractApplication {
                 }
 
 
+            }
 
-                System.out.println();
+
+
+
+
+
+            // Iterate second column tables
+
+            Iterator<Row> secondRowIterator = sheet.rowIterator();
+
+            while (secondRowIterator.hasNext()) {
+                Row row = secondRowIterator.next();
+
+                if(isThereTrainLine(row,SECOND_COLUMN)){
+                    isTrain = true;
+                    transportNumber = getTransportNumber(row,SECOND_COLUMN);
+                }else if(isThereTrolleyLine(row,SECOND_COLUMN)){
+                    isTrolley = true;
+                    transportNumber = getTransportNumber(row,SECOND_COLUMN);
+                }else if(isThereBusLine(row,SECOND_COLUMN)){
+                    isBus = true;
+                    transportNumber = getTransportNumber(row,SECOND_COLUMN);
+                }
+
+
+                if(startsTable(row,SECOND_COLUMN)) {
+
+                    if(secondRowIterator.hasNext()) row = secondRowIterator.next();
+                    ArrayList<Station> stations = new ArrayList<>();
+                    boolean endOfTable = false;
+
+                    while (secondRowIterator.hasNext() && !endOfTable(row, SECOND_COLUMN)) {
+
+                        row = secondRowIterator.next();
+
+                        // Now let's iterate over the columns of the current row
+                        Iterator<Cell> cellIterator = row.cellIterator();
+                        Station station = new Station();
+                        int counter = 0;
+
+                        while (cellIterator.hasNext() && counter < (columns + 16)) {
+
+
+                            Cell cell = cellIterator.next();
+                            String cellValue = dataFormatter.formatCellValue(cell);
+
+
+                            if(!cellValue.isEmpty()) {
+                                switch (counter) {
+                                    case 16:
+                                        station.setCode(cellValue);
+                                        break;
+                                    case 17:
+                                        station.setName(cellValue);
+                                        break;
+                                    case 18:
+                                        try {
+                                             station.setGotUp(Integer.parseInt(cellValue));
+                                        }catch(Exception ex){
+                                             station.setGotUp(0);
+                                        }
+                                        break;
+                                    case 19:
+                                        try {
+                                            station.setDescended(Integer.parseInt(cellValue));
+                                        }catch(Exception ex){
+                                            station.setDescended(0);
+                                        }
+                                        break;
+                                    case 20:
+                                        try {
+                                            station.setExchange(Integer.parseInt(cellValue));
+                                        }catch(Exception ex){
+                                            station.setExchange(0);
+                                        }
+                                        break;
+                                    case 21:
+                                        try {
+                                            station.setLoaded(Integer.parseInt(cellValue));
+                                            if(station.getLoaded() == 0) endOfTable = true;
+                                        }catch(Exception ex){
+                                            station.setLoaded(0);
+                                        }
+                                        break;
+                                }
+                            }
+                            System.out.print(cellValue + "\t");
+                            counter++;
+                        }
+
+                        stations.add(station);
+
+                        counter = 0;
+                        System.out.println();
+                    }
+                    if(isTrain) {
+                        trains.add(new Train(transportNumber, stations));
+                        isTrain = false;
+                    }else if(isTrolley){
+                        trolleybuses.add(new Trolley(transportNumber, stations));
+                        isTrolley = false;
+                    }else if(isBus){
+                        buses.add(new Bus(transportNumber, stations));
+                        isBus = false;
+                    }
+                }
+
+
             }
 
 
 
         }
 
-//
-//        // Getting the Sheet at index zero
-//        Sheet sheet = workbook.getSheetAt(0);
 
         // Closing the workbook
         workbook.close();
 
 
 
-        for(Train train : trains){
-            System.out.println(train.toString());
-        }
+//        System.out.println("{ trams: [");
+//        for(Train train : trains){
+//
+//            if(trains.get(trains.size() - 1).equals(train)) {
+//                System.out.println(train.toString());
+//                break;
+//            }
+//
+//            System.out.println(train.toString() + ",");
+//
+//        }
+//        System.out.println("] }");
 
-        for(Trolley trolley : trolleybuses){
-            System.out.println(trolley.toString());
-        }
 
+//
+//        System.out.println("{ trolleybusses: [");
+//        for(Trolley trolley : trolleybuses){
+//
+//            if(trolleybuses.get(trolleybuses.size() - 1).equals(trolley)) {
+//                System.out.println(trolley.toString());
+//                break;
+//            }
+//
+//            System.out.println(trolley.toString() + ",");
+//
+//        }
+//        System.out.println("] }");
+//
+//
+//
+        System.out.println("{ busses: [");
         for(Bus bus : buses){
-            System.out.println(bus.toString());
+
+            if(buses.get(buses.size() - 1).equals(bus)) {
+                System.out.println(bus.toString());
+                break;
+            }
+
+            System.out.println(bus.toString() + ",");
+
         }
+        System.out.println("] }");
     }
 
-    private static boolean startsTable(Row row){
+    private static boolean startsTable(Row row, int column){
         DataFormatter dataFormatter = new DataFormatter();
 
-        Iterator<Cell> cellIterator = row.cellIterator();
-        String cellValue = "";
+            int tableColumn = 1;
+            if(column == SECOND_COLUMN) tableColumn += 15;
 
-        if (cellIterator.hasNext()) {
-            Cell cell = cellIterator.next();
-            cellValue = dataFormatter.formatCellValue(cell);
-        }
+            Iterator<Cell> cellIterator = row.cellIterator();
+            String cellValue = "";
 
-        if(cellValue.equals("№")) return true;
+            int counter = 0;
+            while (cellIterator.hasNext() && counter < tableColumn) {
+                Cell cell = cellIterator.next();
+                cellValue = dataFormatter.formatCellValue(cell);
+                counter++;
+            }
 
-        return false;
+            if(cellValue.equals("№")) return true;
+
+            return false;
+
     }
 
 
-    private static boolean isThereTrainLine(Row row){
+    private static boolean isThereTrainLine(Row row, int column){
+
+            DataFormatter dataFormatter = new DataFormatter();
+
+            int tableColumn = 3;
+            if(column == SECOND_COLUMN) tableColumn += 15;
+
+            Iterator<Cell> cellIterator = row.cellIterator();
+
+            String cellValue = "";
+            int counter = 0;
+            while (cellIterator.hasNext() && counter < tableColumn) {
+
+                Cell cell = cellIterator.next();
+                cellValue = dataFormatter.formatCellValue(cell);
+                counter++;
+            }
+
+            if (cellValue.contains("ТРАМВАЙНА ЛИНИЯ")) return true;
+
+            return false;
+
+
+    }
+
+    private static boolean isThereBusLine(Row row, int column){
+
+            DataFormatter dataFormatter = new DataFormatter();
+
+            int tableColumn = 3;
+            if(column == SECOND_COLUMN) tableColumn += 15;
+
+            Iterator<Cell> cellIterator = row.cellIterator();
+
+            String cellValue = "";
+            int counter = 0;
+            while (cellIterator.hasNext() && counter < tableColumn) {
+
+                Cell cell = cellIterator.next();
+                cellValue = dataFormatter.formatCellValue(cell);
+                counter++;
+            }
+
+            if (cellValue.contains("АВТОБУСНА ЛИНИЯ") || cellValue.contains("А ЛИНИЯ")) return true;
+
+            return false;
+
+
+
+    }
+
+
+    private static boolean isThereTrolleyLine(Row row, int column){
         DataFormatter dataFormatter = new DataFormatter();
+
+        int tableColumn = 3;
+        if(column == SECOND_COLUMN) tableColumn += 15;
 
         Iterator<Cell> cellIterator = row.cellIterator();
 
         String cellValue = "";
         int counter = 0;
-        while (cellIterator.hasNext() && counter < 3) {
-
-            Cell cell = cellIterator.next();
-            cellValue = dataFormatter.formatCellValue(cell);
-            counter++;
-        }
-
-        if(cellValue.contains("ТРАМВАЙНА ЛИНИЯ")) return true;
-
-        return false;
-    }
-
-    private static boolean isThereBusLine(Row row){
-        DataFormatter dataFormatter = new DataFormatter();
-
-        Iterator<Cell> cellIterator = row.cellIterator();
-
-        String cellValue = "";
-        int counter = 0;
-        while (cellIterator.hasNext() && counter < 3) {
-
-            Cell cell = cellIterator.next();
-            cellValue = dataFormatter.formatCellValue(cell);
-            counter++;
-        }
-
-        if(cellValue.contains("АВТОБУСНА ЛИНИЯ") || cellValue.contains("А ЛИНИЯ")) return true;
-
-        return false;
-    }
-
-
-    private static boolean isThereTrolleyLine(Row row){
-        DataFormatter dataFormatter = new DataFormatter();
-
-        Iterator<Cell> cellIterator = row.cellIterator();
-
-        String cellValue = "";
-        int counter = 0;
-        while (cellIterator.hasNext() && counter < 3) {
+        while (cellIterator.hasNext() && counter < tableColumn) {
 
             Cell cell = cellIterator.next();
             cellValue = dataFormatter.formatCellValue(cell);
@@ -237,50 +393,53 @@ public class DataExtractApplication {
     }
 
 
-    private static int getTransportNumber(Row row){
+    private static String getTransportNumber(Row row, int column){
         DataFormatter dataFormatter = new DataFormatter();
+
+        int tableColumn = 3;
+        if(column == SECOND_COLUMN) tableColumn += 15;
 
         Iterator<Cell> cellIterator = row.cellIterator();
 
         String cellValue = "";
         int counter = 0;
-        while (cellIterator.hasNext() && counter < 3) {
+        while (cellIterator.hasNext() && counter < tableColumn) {
 
             Cell cell = cellIterator.next();
             cellValue = dataFormatter.formatCellValue(cell);
             counter++;
         }
-
-
-        int tmp = 1;
-        if(cellValue.contains("-Тм")) tmp = 4;
-        if(cellValue.contains(" -Б")) tmp = 4;
 
         StringBuilder stringBuilder = new StringBuilder();
 
-        for(int index = cellValue.length() - tmp; cellValue.charAt(index) >= '0' && cellValue.charAt(index) <= '9'; index--){
+        for(int index = cellValue.length() - 1; cellValue.charAt(index) != '№'; index--){
             stringBuilder.append(cellValue.charAt(index));
         }
 
-        System.out.println("!!!!!!" + stringBuilder.reverse().toString());
-        return Integer.parseInt((stringBuilder.reverse()).toString());
+        return stringBuilder.reverse().toString();
     }
 
-    private static boolean endOfTable(Row row){
+    private static boolean endOfTable(Row row, int column){
         DataFormatter dataFormatter = new DataFormatter();
 
         Iterator<Cell> cellIterator = row.cellIterator();
 
         String cellValue = "";
         int counter = 0;
-        while (cellIterator.hasNext() && counter < 2) {
+        while (cellIterator.hasNext() && counter < 18) {
 
             Cell cell = cellIterator.next();
+
+            if(column == SECOND_COLUMN && counter < 15){
+                counter++;
+                continue;
+            }
+
+
             cellValue = dataFormatter.formatCellValue(cell);
             counter++;
+            if(cellValue.contains("ОБЩО")) return true;
         }
-
-        if(cellValue.contains("ОБЩО")) return true;
 
         return false;
     }

@@ -69,13 +69,12 @@ public class Station {
 
     @Override
     public String toString() {
-        return "Station{" +
-                "code='" + code + '\'' +
-                ", name='" + name + '\'' +
-                ", gotUp=" + gotUp +
-                ", descended=" + descended +
-                ", exchange=" + exchange +
-                ", loaded=" + loaded +
+        return "{" +
+                "code:'" + code + '\'' +
+                ", input:" + gotUp +
+                ", output:" + descended +
+                ", exchange:" + exchange +
+                ", natovarenost:" + loaded +
                 '}';
     }
 }

@@ -4,25 +4,25 @@ import java.util.ArrayList;
 
 public class Train {
 
-    private int number;
+    private String number;
     private ArrayList<Station> stations;
 
     Train(){}
 
-    Train(int number){
+    Train(String number){
         this.number = number;
     }
 
-    Train(int number, ArrayList<Station> stations){
+    Train(String number, ArrayList<Station> stations){
         this.number = number;
         this.stations = stations;
     }
 
-    public int getNumber() {
+    public String getNumber() {
         return number;
     }
 
-    public void setNumber(int number) {
+    public void setNumber(String number) {
         this.number = number;
     }
 
@@ -36,9 +36,9 @@ public class Train {
 
     @Override
     public String toString() {
-        return "Train{" +
-                "number=" + number +
-                ", stations=" + stations +
+        return "{" +
+                "name:'" + number + '\'' +
+                ", stops:" + stations +
                 '}';
     }
 }

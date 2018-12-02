@@ -3,25 +3,25 @@ package com.viziazasofia.da.data_extract;
 import java.util.ArrayList;
 
 public class Trolley {
-    private int number;
+    private String number;
     private ArrayList<Station> stations;
 
     Trolley(){}
 
-    Trolley(int number){
+    Trolley(String number){
         this.number = number;
     }
 
-    Trolley(int number, ArrayList<Station> stations){
+    Trolley(String number, ArrayList<Station> stations){
         this.number = number;
         this.stations = stations;
     }
 
-    public int getNumber() {
+    public String getNumber() {
         return number;
     }
 
-    public void setNumber(int number) {
+    public void setNumber(String number) {
         this.number = number;
     }
 
@@ -35,9 +35,9 @@ public class Trolley {
 
     @Override
     public String toString() {
-        return "Trolley{" +
-                "number=" + number +
-                ", stations=" + stations +
+        return "{" +
+                "name:'" + number + '\'' +
+                ", stops:" + stations +
                 '}';
     }
 }
